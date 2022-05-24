@@ -2,53 +2,47 @@ extends Node2D
 class_name Maze
 const Cell = preload("res://Scripts/Cell.gd");
 const Utils = preload("res://Scripts/Utils.gd")
-const Flood = preload("res://Scripts/Algorithms/Flood.gd")
+const WIDTH = 25
+const HEIGHT = 25
 
-var algorithms = [
-	preload("res://Scripts/Algorithms/DepthFirst.gd").new(),
-	preload("res://Scripts/Algorithms/Prim.gd").new(),
-	preload("res://Scripts/Algorithms/AldousBroder.gd").new(),
-]
+var Algorithm
 
 #Ui Variables
-onready var panel: Panel =  get_node("/root/Game/CanvasLayer/Divider/Panel")
+onready var panel: Node =  get_node("/root/Game")
 
 # Maze variables
 var cells: Array;
 var generatingMaze = false
 var cellStack = []
-var flood: Flood = Flood.new()
 var completeMaze = false
 
 func _ready():
 	pass
 
 func _process(delta):
-	flood.floodProcess(delta,self)
-		
 	if panel.complete :
 		panel.complete = false
 		while generatingMaze:
-			algorithms[panel.algorithmOptions.selected].process(self)
+			Algorithm.process(self)
 	elif panel.runStop :
 		if !generatingMaze:
 			panel.stop = false
 		else:
-			algorithms[panel.algorithmOptions.selected].process(self)
+			Algorithm.process(self)
 	elif panel.step :
 		panel.step = false
-		algorithms[panel.algorithmOptions.selected].process(self)
+		Algorithm.process(self)
 	pass
 
 
 func getCell(x,y):
-	return cells[y * panel.xSpin.value +x];
+	return cells[y * WIDTH +x];
 
 
 func getNeighbors(x,y):
 	var dummy = Cell.new()
-	var width = panel.xSpin.value
-	var height = panel.ySpin.value
+	var width = HEIGHT
+	var height = WIDTH
 	dummy.visit()
 	return {
 		Cell.Wall.UP: getCell(x,y-1) if y > 0 else dummy, 			#UP
@@ -59,8 +53,8 @@ func getNeighbors(x,y):
 
 
 func prepareMaze():	
-	var width = panel.xSpin.value
-	var height = panel.ySpin.value
+	var width = WIDTH
+	var height = HEIGHT
 	generatingMaze = false
 	cells = []
 	var size = height*width;
@@ -70,17 +64,15 @@ func prepareMaze():
 		cell.y = i/int(width);
 		cells.append(cell);
 	buildTiles()
-	scale = Utils.fixScale(Vector2(panel.xSpin.value*2+1, panel.ySpin.value*2+1) * $TileMap.get_cell_size(), get_parent().get_parent().rect_size)
-	
-	
+	scale = Utils.fixScale(Vector2(WIDTH*2+1, HEIGHT*2+1) * $TileMap.get_cell_size(), get_parent().get_parent().rect_size)
 
 
-func startGeneration():
-	algorithms[panel.algorithmOptions.selected].generate(self)
+func startGeneration(algorithm):
+	Algorithm = algorithm
+	algorithm.generate(self)
 	generatingMaze = true
 	completeMaze = false
-	scale = Utils.fixScale(Vector2(panel.xSpin.value*2+1, panel.ySpin.value*2+1) * $TileMap.get_cell_size(), get_parent().get_parent().rect_size)
-	pass
+	scale = Utils.fixScale(Vector2(WIDTH*2+1, HEIGHT*2+1) * $TileMap.get_cell_size(), get_parent().get_parent().rect_size)
 
 
 func finishGeneration(mazeCompleted = true):
@@ -88,13 +80,12 @@ func finishGeneration(mazeCompleted = true):
 	completeMaze = mazeCompleted
 	buildTiles()
 	panel.finishGeneration()
-	scale = Utils.fixScale(Vector2(panel.xSpin.value*2+1, panel.ySpin.value*2+1) * $TileMap.get_cell_size(), get_parent().get_parent().rect_size)
-	pass
+	scale = Utils.fixScale(Vector2(WIDTH*2+1, HEIGHT*2+1) * $TileMap.get_cell_size(), get_parent().get_parent().rect_size)
 
 
 func buildTiles():
-	var width = panel.xSpin.value
-	var height = panel.ySpin.value
+	var width = WIDTH
+	var height = HEIGHT
 	$TileMap.clear()
 	for x in range(-1,width*2):
 		for y in range(-1,height*2):
